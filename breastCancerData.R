@@ -126,7 +126,24 @@ summary(logmodel7)
 colnames(data1)
 
 
+####### summary stats ##########
 
+## generating 2x2 tables for various tests
+table(data1$RFS)
+xtabs(~RFS,data=data1)
+xtabs(~RFS + chemotherapyClass, data=data1)
+xtabs(~RFS + tamoxifen, data=data1)
+xtabs(~RFS + radiotherapyClass, data=data1)
+xtabs(~RFS + study_ID, data=data1)
+xtabs(~RFS + PR_preTrt, data=data1)
+xtabs(~RFS + ER_preTrt, data=data1)
+
+## age and tumor size summary stats - box plots
+data1_age_9893 <- data1$age[which(data1$study_ID == 9893)]
+data1_age_16391 <- data1$age[which(data1$study_ID == 16391)]
+
+boxplot(data1_age_9893, data1_age_16391, main="Age of patients", at=c(1,2), names=c("study 9893","study 16391"), ylab = "age")
+boxplot(data1$tumor_size_cm_preTrt_preSurgery, main="Tumor size (study 9893)", xlab = "study 9893", ylab = "tumor size (cm)")
 
 
 

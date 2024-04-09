@@ -24,8 +24,8 @@ data(clinicalData)
 clinicalData$clinicalVarDef
 clinicalData$clinicalTable$GEO_GSMID
 data <- clinicalData$clinicalTable[c('dbUniquePatientID', 'study_ID', 'patient_ID', 'GEO_GSMID',  'age', 
-                                     'path_diagnosis', 'path', 'tumor_stage_preTrt', 'hist_grade',
-                                     'RFS', 'DFS', 'OS', 'dead', 'died_from_cancer_if_dead', 
+                                     'path_diagnosis', 'path', 'tumor_stage_preTrt', 'hist_grade', 'tumor_size_cm_preTrt_preSurgery',
+                                     'RFS', 'RFS_months_or_MIN_months_of_RFS', 'DFS', 'OS', 'dead', 'died_from_cancer_if_dead', 
                                      'ER_preTrt', 'PR_preTrt', #pre-treatment ER IHC status, pre-treatment progesterone IHC status
                                      'radiotherapyClass', 'chemotherapyClass', 'hormone_therapyClass',
                                      'chemotherapy', 'hormone_therapy', 'no_treatment', 
@@ -38,10 +38,10 @@ clinicalData$clinicalTable[which(clinicalData$clinicalTable$study_ID %in% c('137
 filtered_data <- data[which(data$study_ID %in% c('1379', '6577','9893', '16391','17705')),]
 filtered_data <- data[which(data$study_ID %in% c('9893', '16391')),]
 
-write.csv(filtered_data, file='/Users/Lindsey/gatech/S2024/ISYE6421/project_breastcancer_data.csv',)
-?write.csv
+write.csv(filtered_data, file='/Users/Lindsey/gatech/S2024/ISYE6421/project_breastcancer_data_2.csv',)
 
-
+## study 9893 has tumor size
+## study 16391 has RFS months (survival curve?)
 
 ## geting the microarray data for each study
 names(curatedBreastDataExprSetList)
@@ -85,6 +85,51 @@ study2_rfs_0 <- GSE16391[which(colnames(GSE16391) %in% RFS_0),]
 study2_rfs_1 <- GSE16391[which(colnames(GSE16391) %in% RFS_1),]
 
 t.test(study2_rfs_0, study2_rfs_1, var.equal=T)
+
+
+
+## logistic  regression
+data1 <- filtered_data[,c("study_ID", "age", "path_diagnosis", "hist_grade", "tumor_size_cm_preTrt_preSurgery", "RFS", "ER_preTrt", "PR_preTrt", "radiotherapyClass",
+                          "chemotherapyClass", "tamoxifen", "aromatase_inhibitor", "estrogen_receptor_blocker")]
+head(data1)
+summary(data1)
+
+logmodel <- glm(RFS ~ ., data = data1)
+summary(logmodel)
+
+logmodel1 <- glm(RFS ~ age + hist_grade + radiotherapyClass + chemotherapyClass + tamoxifen + aromatase_inhibitor + estrogen_receptor_blocker + 
+                     ER_preTrt + PR_preTrt, family = 'binomial', data = data1)
+summary(logmodel1)
+
+logmodel2 <- glm(RFS ~ study_ID + age + hist_grade + PR_preTrt + radiotherapyClass + tamoxifen + radiotherapyClass * tamoxifen, family = 'binomial', data = data1)
+summary(logmodel2)
+anova(logmodel2, test="Chisq")
+
+logmodel3 <- glm(RFS ~ study_ID + hist_grade + PR_preTrt + chemotherapyClass + tamoxifen + chemotherapyClass * tamoxifen, family = 'binomial', data = data1)
+summary(logmodel3)
+anova(logmodel3, test="Chisq")
+
+logmodel4 <- glm(RFS ~ study_ID + hist_grade + PR_preTrt + radiotherapyClass * chemotherapyClass * tamoxifen, family = 'binomial', data=data1)
+summary(logmodel4)
+anova(logmodel4, test="Chisq")
+
+logmodel5 <- glm(RFS ~ study_ID + age + hist_grade + ER_preTrt + PR_preTrt, family = 'binomial', data=data1)
+summary(logmodel5)
+
+logmodel6 <- glm(formula = RFS ~ hist_grade + PR_preTrt + chemotherapyClass * tamoxifen + radiotherapyClass * tamoxifen, family = 'binomial', data = filtered_data)
+summary(logmodel6)
+anova(logmodel6, test="Chisq")
+
+logmodel7 <- glm(formula = RFS ~ hist_grade + PR_preTrt + tamoxifen, data = data1, family = 'binomial')
+summary(logmodel7)
+
+colnames(data1)
+
+
+
+
+
+
 
 
 

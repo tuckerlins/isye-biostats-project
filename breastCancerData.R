@@ -89,6 +89,11 @@ PR_1 <- filtered_data$patient_ID[which(filtered_data$PR_preTrt == 1)]
 ###### microarray stuff ########
 head(GSE16391)
 head(GSE9893)
+dim(GSE9893)
+dim(GSE16391)
+
+plot(GSE9893, GSE16391)
+plot(GSE16391)
 
 ### workaround for t.test error: data are essentially constant
 my.t.test.p.value <- function(...) {
@@ -472,13 +477,14 @@ barplot(xtabs(~radiotherapyClass + study_ID, data=data1),beside=T,
 
 barplot(xtabs(~chemotherapyClass + study_ID, data=data1),beside=T,
         main = 'Chemotherapy across studies', legend = c('no chemo','chemotherapy'), xlab="study ID", ylab='# of patients')
+xtabs(~radiotherapyClass + study_ID, data=data1)
 
 barplot(xtabs(~ER_preTrt + study_ID, data=data1),beside=T,
         main = 'ER positivity prior to\ntreatment across studies', legend = c('ER-','ER+'), xlab="study ID", ylab='# of patients')
 
 barplot(xtabs(~PR_preTrt + study_ID, data=data1),beside=T,
         main = 'PR positivity prior to\ntreatment across studies', legend = c('PR-','PR+'), xlab="study ID", ylab='# of patients')
-
+xtabs(~ER_preTrt + study_ID, data=data1)
 # i may have gone a lil wild with the graphs idk
 
 citation("curatedBreastData")

@@ -390,17 +390,22 @@ Reduce(intersect, list(s1_rfs_siggenes$`rownames(GSE16391)`, s9_rfs_genes$`rowna
 
 
 ## logistic  regression
-data1 <- filtered_data[,c("study_ID", "age", "path_diagnosis", "hist_grade", "tumor_size_cm_preTrt_preSurgery", "RFS", "ER_preTrt", "PR_preTrt", "radiotherapyClass",
+data1 <- filtered_data[,c("study_ID", "age", "path_diagnosis", "hist_grade", "tumor_size_cm_preTrt_preSurgery", "RFS", 'RFS_months_or_MIN_months_of_RFS', "ER_preTrt", "PR_preTrt", "radiotherapyClass",
                           "chemotherapyClass", "tamoxifen", "aromatase_inhibitor", "estrogen_receptor_blocker")]
 head(data1)
 summary(data1)
 
-
 logmodel1 <- glm(RFS ~ age + hist_grade + radiotherapyClass + chemotherapyClass + tamoxifen + aromatase_inhibitor + estrogen_receptor_blocker + 
-                     ER_preTrt + PR_preTrt, family = 'binomial', data = data1)
+                      ER_preTrt + PR_preTrt, family = 'binomial', data = data1)
 summary(logmodel1)
 
-logmodel2 <- glm(RFS ~ study_ID + age + hist_grade + PR_preTrt + radiotherapyClass + tamoxifen + radiotherapyClass * tamoxifen, family = 'binomial', data = data1)
+# ignoring treatments
+logmodel1.1 <- glm(RFS ~ age + tumor_size_cm_preTrt_preSurgery + ER_preTrt + PR_preTrt, family = 'binomial', data = data1)
+summary(logmodel1.1)
+
+# only considering sig confounding factors
+
+logmodel2 <- glm(RFS ~ study_ID + hist_grade + PR_preTrt + radiotherapyClass + tamoxifen + radiotherapyClass * tamoxifen, family = 'binomial', data = data1)
 summary(logmodel2)
 anova(logmodel2, test="Chisq")
 
@@ -412,6 +417,7 @@ logmodel4 <- glm(RFS ~ study_ID + hist_grade + PR_preTrt + radiotherapyClass * c
 summary(logmodel4)
 anova(logmodel4, test="Chisq")
 
+
 logmodel5 <- glm(RFS ~ study_ID + age + hist_grade + ER_preTrt + PR_preTrt, family = 'binomial', data=data1)
 summary(logmodel5)
 
@@ -422,8 +428,13 @@ anova(logmodel6, test="Chisq")
 logmodel7 <- glm(formula = RFS ~ hist_grade + PR_preTrt + tamoxifen, data = data1, family = 'binomial')
 summary(logmodel7)
 
-logmodel8 <- glm(formula = RFS ~ hist_grade + PR_preTrt + tamoxifen, family='binomial'(link="logit"), data=data1)
+logmodel8 <- glm(formula = RFS ~ tamoxifen + radiotherapyClass + chemotherapyClass, family='binomial'(link="logit"), data=data1)
 summary(logmodel8)
+anova(logmodel8, test="Chisq")
+model8.aov <- aov( RFS ~ tamoxifen , data=data1)
+summary(model8.aov)
+TukeyHSD(model8.aov, conf.level=0.95)
+plot(TukeyHSD(model8.aov,conf.level=0.95))
 
 colnames(data1)
 
@@ -447,15 +458,28 @@ data1_age_9893 <- data1$age[which(data1$study_ID == 9893)]
 data1_age_16391 <- data1$age[which(data1$study_ID == 16391)]
 
 boxplot(data1_age_9893, data1_age_16391, main="Age of patients", at=c(1,2), names=c("study 9893","study 16391"), ylab = "age")
-boxplot(data1$tumor_size_cm_preTrt_preSurgery, main="Tumor size (study 9893)", xlab = "study 9893", ylab = "tumor size (cm)")
+boxplot(data1$tumor_size_cm_preTrt_preSurgery, main="Tumor size", xlab = "study 9893", ylab = "tumor size (cm)")
 
+boxplot(data1$RFS_months_or_MIN_months_of_RFS, main="relapse free survival time", xlab = 'study 16391', ylab = 'months')
 
+## bar graphs
+barplot(table(data1$RFS), main = "Overall relapse free survival", xlab="RFS status", ylab = '# of patients')
+barplot(xtabs(~tamoxifen + RFS, data=data1), beside=TRUE, 
+        main = 'Tamoxifen treatment', legend = c('no tam','tamoxifen'), xlab='RFS', ylab='# of patients')
 
+barplot(xtabs(~radiotherapyClass + study_ID, data=data1),beside=T,
+        main = 'Radiotherapy across studies', legend = c('no radio','radiotherapy'), xlab="study ID", ylab='# of patients')
 
+barplot(xtabs(~chemotherapyClass + study_ID, data=data1),beside=T,
+        main = 'Chemotherapy across studies', legend = c('no chemo','chemotherapy'), xlab="study ID", ylab='# of patients')
 
+barplot(xtabs(~ER_preTrt + study_ID, data=data1),beside=T,
+        main = 'ER positivity prior to\ntreatment across studies', legend = c('ER-','ER+'), xlab="study ID", ylab='# of patients')
 
+barplot(xtabs(~PR_preTrt + study_ID, data=data1),beside=T,
+        main = 'PR positivity prior to\ntreatment across studies', legend = c('PR-','PR+'), xlab="study ID", ylab='# of patients')
 
-
+# i may have gone a lil wild with the graphs idk
 
 citation("curatedBreastData")
 

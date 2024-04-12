@@ -67,19 +67,43 @@ RFS_1 <- filtered_data$patient_ID[which(filtered_data$RFS == 1)]
 length(RFS_0)
 length(RFS_1)
 
+## tamoxifen
+tam_0 <- filtered_data$patient_ID[which(filtered_data$tamoxifen == 0)]
+tam_1 <- filtered_data$patient_ID[which(filtered_data$tamoxifen == 1)]
 
-## microarray stuff
+## chemotherapyClass
+chemo_0 <- filtered_data$patient_ID[which(filtered_data$chemotherapyClass == 0)]
+chemo_1 <- filtered_data$patient_ID[which(filtered_data$chemotherapyClass == 1)]
+
+## radiotherapyClass
+radio_0 <- filtered_data$patient_ID[which(filtered_data$radiotherapyClass == 0)]
+radio_1 <- filtered_data$patient_ID[which(filtered_data$radiotherapyClass == 1)]
+
+# progesterone receptor
+PR_0 <- filtered_data$patient_ID[which(filtered_data$PR_preTrt == 0)]
+PR_1 <- filtered_data$patient_ID[which(filtered_data$PR_preTrt == 1)]
+
+
+
+
+###### microarray stuff ########
 head(GSE16391)
 head(GSE9893)
 
+### workaround for t.test error: data are essentially constant
+my.t.test.p.value <- function(...) {
+    obj<-try(t.test(...), silent=TRUE)
+    if (is(obj, "try-error")) return(NA) else return(obj$p.value)
+}
+
+
 #### study 9893 #####
+## RFS
 # subsetting the microarray data for the patients who have RFS 0,1 to compare
 study9_rfs_0 <- GSE9893[,which(colnames(GSE9893) %in% RFS_0)]
 study9_rfs_1 <- GSE9893[,which(colnames(GSE9893) %in% RFS_1)]
 dim(study9_rfs_0)
 dim(study9_rfs_1)
-
-study9_rfs_0[2,]
 
 # t-test between RFS=0 and RFS=1 groups
 pval_rfs <- c()
@@ -90,31 +114,100 @@ for (i in 1:22898) {
     pval_rfs <- c(pval_rfs, t$p.value)
 }
 
+# getting the genes with the smallest p values
+s9_rfs_genes <- cbind.data.frame(rownames(GSE9893), pval_rfs)
+s9_rfs_siggenes <- s9_rfs_genes[which(s9_rfs_genes$pval_rfs < 0.05),]
+s9_rfs_siggenes <- s9_rfs_siggenes[order(s9_rfs_siggenes$pval_rfs),]
+head(s9_rfs_siggenes)
+
+# FDR corrected p-values
+s9_rfs_genes <- s9_rfs_genes[order(s9_rfs_genes$pval_rfs),]
+genes <- s9_rfs_genes$`rownames(GSE9893)`
+pvals <- s9_rfs_genes$pval_rfs
+fdr <- ( 22898 / 1:length(pvals)) * pvals
+s9_rfs_data <- data.frame(genes, pvals, fdr)
+s9_rfs_data[which(s9_rfs_data$fdr < 0.05),]
+sum(s9_rfs_data$fdr < 0.05)
+
+
+## TAMOXIFEN: doesn't work, tamoxifen_0 = 0
+
+## CEHMO: doesn't work, chemo_1 = 0
+
+## RADIO 
+# getting significant genes for patients with and without radiotherapy
+study9_radio_0 <- GSE9893[,which(colnames(GSE9893) %in% radio_0)]
+study9_radio_1 <- GSE9893[,which(colnames(GSE9893) %in% radio_1)]
+dim(study9_radio_0)
+dim(study9_radio_1)
+
+# t-test 
+pval_radio <- c()
+for (i in 1:22898) {
+    x <- study9_radio_0[i,]
+    y <- study9_radio_1[i,]
+    t <- my.t.test.p.value(x, y, var.equal=T)
+    pval_radio <- c(pval_radio, t)
+}
 
 # getting the genes with the smallest p values
-s9_genes <- cbind.data.frame(rownames(GSE9893), pval_rfs)
-s9_siggenes <- s9_genes[which(s9_genes$pval_rfs < 0.05),]
-s9_siggenes <- s9_siggenes[order(s9_siggenes$pval_rfs),]
-head(s9_siggenes)
+s9_radio_genes <- cbind.data.frame(rownames(GSE9893), pval_radio)
+s9_radio_siggenes <- s9_radio_genes[which(s9_radio_genes$pval_radio < 0.05),]
+s9_radio_siggenes <- s9_radio_siggenes[order(s9_radio_siggenes$pval_radio),]
+head(s9_radio_siggenes)
+
+# FDR
+s9_radio_genes <- s9_radio_genes[order(s9_radio_genes$pval_radio),]
+genes <- s9_radio_genes$`rownames(GSE9893)`
+pvals <- s9_radio_genes$pval_radio
+fdr <- ( 22898 / 1:length(pvals)) * pvals
+s9_radio_data <- data.frame(genes, pvals, fdr)
+sum(s9_radio_data$fdr < 0.05)
+
+
+## PROGESTORONE RECEPTOR PR
+# getting significant genes for patients with and without tamoxifen
+study9_PR_0 <- GSE9893[,which(colnames(GSE9893) %in% PR_0)]
+study9_PR_1 <- GSE9893[,which(colnames(GSE9893) %in% PR_1)]
+dim(study9_PR_0)
+dim(study9_PR_1)
+
+# t-test 
+pval_pr <- c()
+for (i in 1:22898) {
+    x <- study9_PR_0[i,]
+    y <- study9_PR_1[i,]
+    t <- my.t.test.p.value(x, y, var.equal=T)
+    pval_pr <- c(pval_pr, t)
+}
+
+# getting the genes with the smallest p values
+s9_pr_genes <- cbind.data.frame(rownames(GSE9893), pval_pr)
+s9_pr_siggenes <- s9_pr_genes[which(s9_pr_genes$pval_pr < 0.05),]
+s9_pr_siggenes <- s9_pr_siggenes[order(s9_pr_siggenes$pval_pr),]
+head(s9_pr_siggenes)
+
+# fdr
+s9_pr_genes <- s9_pr_genes[order(s9_pr_genes$pval_pr),]
+genes <- s9_pr_genes$`rownames(GSE9893)`
+pvals <- s9_pr_genes$pval_pr
+fdr <- ( 22898 / 1:length(pvals)) * pvals
+s9_pr_data <- data.frame(genes, pvals, fdr)
+sum(s9_pr_data$fdr < 0.05)
+s9_pr_data[which(s9_pr_data$fdr < 0.05),]
 
 
 
 
-##### same for study 16391 #####
+
+
+##### micrarray stuff for study 16391 #####
 # relapse free survival: 0, 1
 study1_rfs_0 <- GSE16391[,which(colnames(GSE16391) %in% RFS_0)]
 study1_rfs_1 <- GSE16391[,which(colnames(GSE16391) %in% RFS_1)]
 dim(study1_rfs_0)
-head(study1_rfs_1)
-
-# 
 
 
-### workaround for t.test error: data are essentially constant
-my.t.test.p.value <- function(...) {
-    obj<-try(t.test(...), silent=TRUE)
-    if (is(obj, "try-error")) return(NA) else return(obj$p.value)
-}
 
 # t-test between RFS=0 and RFS=1 groups
 pval_rfs <- c()
@@ -125,16 +218,175 @@ for (i in 1:54696) {
     pval_rfs <- c(pval_rfs, t)
 }
 
-pval_rfs
+# getting the genes with the smallest p values
+s1_rfs_genes <- cbind.data.frame(rownames(GSE16391), pval_rfs)
+s1_rfs_siggenes <- s1_rfs_genes[which(s1_rfs_genes$pval_rfs < 0.05),]
+s1_rfs_siggenes <- s1_rfs_siggenes[order(s1_rfs_siggenes$pval_rfs),]
+head(s1_rfs_siggenes)
+
+# fdr
+s1_rfs_genes <- s1_rfs_genes[order(s1_rfs_genes$pval_rfs),]
+genes <- s1_rfs_genes$`rownames(GSE16391)`
+pvals <- s1_rfs_genes$pval_rfs
+fdr <- ( 54696 / 1:length(pvals)) * pvals
+s1_rfs_data <- data.frame(genes, pvals, fdr)
+sum(s1_rfs_data$fdr < 0.05)
+s1_rfs_data[which(s1_rfs_data$fdr < 0.05),]
+
+
+## TAMOXIFEN
+# getting significant genes for patients with and without tamoxifen
+study1_tam_0 <- GSE16391[,which(colnames(GSE16391) %in% tam_0)]
+study1_tam_1 <- GSE16391[,which(colnames(GSE16391) %in% tam_1)]
+dim(study1_tam_0)
+dim(study1_tam_1)
+
+# t-test 
+pval_tam <- c()
+for (i in 1:54696) {
+    x <- study1_tam_0[i,]
+    y <- study1_tam_1[i,]
+    t <- my.t.test.p.value(x, y, var.equal=T)
+    pval_tam <- c(pval_tam, t)
+}
 
 # getting the genes with the smallest p values
-s1_genes <- cbind.data.frame(rownames(GSE16391), pval_rfs)
-s1_siggenes <- s1_genes[which(s1_genes$pval_rfs < 0.05),]
-s1_siggenes <- s1_siggenes[order(s1_siggenes$pval_rfs),]
-head(s1_siggenes)
+s1_tam_genes <- cbind.data.frame(rownames(GSE16391), pval_tam)
+s1_tam_siggenes <- s1_tam_genes[which(s1_tam_genes$pval_tam < 0.05),]
+s1_tam_siggenes <- s1_tam_siggenes[order(s1_tam_siggenes$pval_tam),]
+head(s1_tam_siggenes)
+
+# fdr
+s1_tam_genes <- s1_tam_genes[order(s1_tam_genes$pval_tam),]
+genes <- s1_tam_genes$`rownames(GSE16391)`
+pvals <- s1_tam_genes$pval_tam
+fdr <- ( 54696 / 1:length(pvals)) * pvals
+s1_tam_data <- data.frame(genes, pvals, fdr)
+sum(s1_tam_data$fdr < 0.05)
+s1_tam_data[which(s1_tam_data$fdr < 0.05),]
+
+
+## CEHMO
+# getting significant genes for patients with and without tamoxifen
+study1_chemo_0 <- GSE16391[,which(colnames(GSE16391) %in% chemo_0)]
+study1_chemo_1 <- GSE16391[,which(colnames(GSE16391) %in% chemo_1)]
+dim(study1_chemo_0)
+dim(study1_chemo_1)
+
+# t-test 
+pval_chemo <- c()
+for (i in 1:54696) {
+    x <- study1_chemo_0[i,]
+    y <- study1_chemo_1[i,]
+    t <- my.t.test.p.value(x, y, var.equal=T)
+    pval_chemo <- c(pval_chemo, t)
+}
+
+# getting the genes with the smallest p values
+s1_chemo_genes <- cbind.data.frame(rownames(GSE16391), pval_chemo)
+s1_chemo_siggenes <- s1_chemo_genes[which(s1_chemo_genes$pval_chemo < 0.05),]
+s1_chemo_siggenes <- s1_chemo_siggenes[order(s1_chemo_siggenes$pval_chemo),]
+head(s1_chemo_siggenes)
+
+# fdr
+s1_chemo_genes <- s1_chemo_genes[order(s1_chemo_genes$pval_chemo),]
+genes <- s1_chemo_genes$`rownames(GSE16391)`
+pvals <- s1_chemo_genes$pval_chemo
+fdr <- ( 54696 / 1:length(pvals)) * pvals
+s1_chemo_data <- data.frame(genes, pvals, fdr)
+sum(s1_chemo_data$fdr < 0.05)
+s1_chemo_data[which(s1_chemo_data$fdr < 0.05),]
+
+
+## RADIO 
+# getting significant genes for patients with and without tamoxifen
+study1_radio_0 <- GSE16391[,which(colnames(GSE16391) %in% radio_0)]
+study1_radio_1 <- GSE16391[,which(colnames(GSE16391) %in% radio_1)]
+dim(study1_radio_0)
+dim(study1_radio_1)
+
+# t-test 
+pval_radio <- c()
+for (i in 1:54696) {
+    x <- study1_radio_0[i,]
+    y <- study1_radio_1[i,]
+    t <- my.t.test.p.value(x, y, var.equal=T)
+    pval_radio <- c(pval_radio, t)
+}
+
+# getting the genes with the smallest p values
+s1_radio_genes <- cbind.data.frame(rownames(GSE16391), pval_radio)
+s1_radio_siggenes <- s1_radio_genes[which(s1_radio_genes$pval_radio < 0.05),]
+s1_radio_siggenes <- s1_radio_siggenes[order(s1_radio_siggenes$pval_radio),]
+head(s1_radio_siggenes)
+
+# fdr
+s1_radio_genes <- s1_radio_genes[order(s1_radio_genes$pval_radio),]
+genes <- s1_radio_genes$`rownames(GSE16391)`
+pvals <- s1_radio_genes$pval_radio
+fdr <- ( 54696 / 1:length(pvals)) * pvals
+s1_radio_data <- data.frame(genes, pvals, fdr)
+sum(s1_radio_data$fdr < 0.05)
+s1_radio_data[which(s1_radio_data$fdr < 0.05),]
+
+
+## PROGESTORONE RECEPTOR PR
+# getting significant genes for patients with and without tamoxifen
+study1_PR_0 <- GSE16391[,which(colnames(GSE16391) %in% PR_0)]
+study1_PR_1 <- GSE16391[,which(colnames(GSE16391) %in% PR_1)]
+dim(study1_PR_0)
+dim(study1_PR_1)
+
+# t-test 
+pval_pr <- c()
+for (i in 1:54696) {
+    x <- study1_PR_0[i,]
+    y <- study1_PR_1[i,]
+    t <- my.t.test.p.value(x, y, var.equal=T)
+    pval_pr <- c(pval_pr, t)
+}
+
+# getting the genes with the smallest p values
+s1_pr_genes <- cbind.data.frame(rownames(GSE16391), pval_pr)
+s1_pr_siggenes <- s1_pr_genes[which(s1_pr_genes$pval_pr < 0.05),]
+s1_pr_siggenes <- s1_pr_siggenes[order(s1_pr_siggenes$pval_pr),]
+head(s1_pr_siggenes)
+
+# fdr
+s1_pr_genes <- s1_pr_genes[order(s1_pr_genes$pval_pr),]
+genes <- s1_pr_genes$`rownames(GSE16391)`
+pvals <- s1_pr_genes$pval_pr
+fdr <- ( 54696 / 1:length(pvals)) * pvals
+s1_pr_data <- data.frame(genes, pvals, fdr)
+sum(s1_pr_data$fdr < 0.05)
+s1_pr_data[which(s1_pr_data$fdr < 0.05),]
+
+
+### significant genes ####
+head(s1_tam_siggenes)
+
+head(s1_chemo_siggenes)
+
+head(s1_radio_siggenes)
+head(s9_radio_siggenes)
+
+
+rfs_sig <- Reduce(intersect, list(s1_rfs_genes$`rownames(GSE16391)`, s9_rfs_genes$`rownames(GSE9893)`))
+rfs_sig <- rfs_sig[!is.na(rfs_sig)]
+
+head(s1_rfs_data[which(s1_rfs_data$genes %in% rfs_sig),])
+head(s9_rfs_data[which(s9_rfs_data$genes %in% rfs_sig),])
+
+
+head(s1_rfs_siggenes[which(s1_rfs_siggenes$`rownames(GSE16391)` %in% rfs_sig),])
+head(s9_rfs_siggenes[which(s9_rfs_siggenes$`rownames(GSE9893)` %in% rfs_sig),])
 
 
 
+head(s1_pr_siggenes)
+head(s9_pr_siggenes)
+
+Reduce(intersect, list(s1_rfs_siggenes$`rownames(GSE16391)`, s9_rfs_genes$`rownames(GSE9893)`))
 
 
 ## logistic  regression
@@ -174,6 +426,8 @@ logmodel8 <- glm(formula = RFS ~ hist_grade + PR_preTrt + tamoxifen, family='bin
 summary(logmodel8)
 
 colnames(data1)
+
+
 
 
 ####### summary stats ##########
